@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const newAuthorInput = newQuoteForm.querySelector("#author")
   const deleteButton = quoteList.querySelector(`[data-button-id='delete']`)
   const likeButton = quoteList.querySelector(`[data-button-id='like']`)
+  const editQuoteForm = document.querySelector("#edit-quote-form")
+  const inputEditQuote = document.querySelector("#inputEditQuote")
+  const inputEditAuthor = document.querySelector("#inputEditAuthor")
 
   //************ get the quotes ************/
   function getQuotesFetchRequest(){
@@ -36,12 +39,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function renderQuoteCard(quoteInfo){
     return `
-    <li class='quote-card'>
+    <li class='quote-card' data-quote-card-id=${quoteInfo.id}>
       <blockquote class="blockquote">
         <p class="mb-0">${quoteInfo.quote}</p>
         <footer class="blockquote-footer">${quoteInfo.author}</footer>
         <br>
+
         <button class='btn-success' data-button-id="like" data-quote-id=${quoteInfo.id} >Likes: <span>${quoteInfo.likes}</span></button>
+
+        <button data-button-id="edit" data-quote-id=${quoteInfo.id} class='btn-primary'>Edit</button>
+
         <button data-button-id="delete" data-quote-id=${quoteInfo.id} class='btn-danger'>Delete</button>
       </blockquote>
     </li>
@@ -119,17 +126,58 @@ document.addEventListener('DOMContentLoaded', ()=>{
       })
 
 
-    }
+    }//end of like button
+    //render edit form
+    else if (e.target.dataset.buttonId==="edit"){
+      editQuoteForm.style.display="block"
+
+      const quoteToEdit = quoteArray.find((quote)=>{
+        return quote.id == e.target.dataset.quoteId
+      })
+      inputEditQuote.value = quoteToEdit.quote
+      inputEditAuthor.value = quoteToEdit.author
+
+      fetch(`http://localhost:3000/quotes/${quoteToEdit.id}`, {
+        method: "GET"
+      })//end of fetch
+      .then((res)=>{
+        return res.json()
+      })
+      .then((quote)=>{
+        editQuoteForm.dataset.id = quote.id
+      })
 
 
-  })//end of delete button event listener
-// `[data-note-id='${foundNote.id}']`
 
+    }// end of edit button
+  })//end of buttons event listener
 
+  editQuoteForm.addEventListener("submit", (e)=>{
+    e.preventDefault()
+    // console.log(e.target.dataset.id);
+    const editedQuote = inputEditQuote.value
+    const editedAuthor = inputEditAuthor.value
 
-
-
-
+    fetch(`http://localhost:3000/quotes/${e.target.dataset.id}`, {
+      method: "PATCH",
+      headers:{
+        'Content-Type': 'application/json',
+        Accept: 'application/json'},
+      body: JSON.stringify({
+        quote: editedQuote,
+        author: editedAuthor
+      })//end of body json stringify
+    })//end of fetch
+    .then((res)=>{
+      return res.json()
+    })
+    .then((returnedQuote)=>{
+      //update the dom
+      const quoteCardToUpdate = document.querySelector(`[data-quote-card-id='${returnedQuote.id}]'`)
+      editQuoteForm.style.display = "none"
+      quoteCardToUpdate.innerHTML = renderQuoteCard(returnedQuote)
+    })
+  })//end of edit quote form event listener
 
 
 
